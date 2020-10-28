@@ -2,7 +2,7 @@
 
 FROM cassandra
 
-# CPython and udacity dependencies installation
+# CPython and GNU installation
 
 RUN apt-get update
 
@@ -20,4 +20,8 @@ RUN pip3 install cassandra-driver
 
 # Drop udacity project files into image
 
-COPY udacity/ /root
+RUN mkdir /root/data
+
+COPY data/ /root/data
+
+COPY *.py /root

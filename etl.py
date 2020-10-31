@@ -61,8 +61,29 @@ def insert_data_into_cassandra():
 
     session.execute('USE sparkify')
 
-    session.execute('CREATE TABLE IF NOT EXISTS sparkify.songplays(id UUID PRIMARY KEY)')
+    session.execute("""
+        CREATE TABLE IF NOT EXISTS sparkify.playsBySessionAndItem(
+            sessionId int,
+            itemInSession int,
+            artist text,
+            songTitle text,
+            songLen text,
+            PRIMARY KEY (sessionId, itemInSession)
+        ) WITH CLUSTERING ORDER BY (itemInSession ASC)
+    """)
 
+    with open('event_datafile_new.csv', encoding = 'utf8') as file:
+        csvreader = csv.reader(file)
+        csvreader.__next__()
+        for line in csvreader:
+            session.execute("""
+                INSERT INTO sparkify.playsBySessionAndItem(sessionId, itemInSession, artist, songTitle, songLen)
+                VALUES ({sessionId}, {itemInSession}, '{artist}', '{songTitle}', '{songLen}')
+            """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
+
+
+    session.shutdown()
+    cluster.shutdown()
 
 def main():
 

@@ -4,6 +4,17 @@ import os
 
 def process_csv(dir, paths):
 
+    """process_csv
+
+    Read in csv files within "dir", normalize and output a single
+    large csv compilation thereof with normalized columns
+
+    Parameters:
+    dir (string): Root filepath containing csvs
+    paths (array): List of csv file names without the directory portion
+
+    """
+
     csvrows = []
 
     # cache all the csv rows from each file in memory
@@ -26,12 +37,14 @@ def process_csv(dir, paths):
                 continue
             writer.writerow((row[0], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[12], row[13], row[16]))
 
-def main():
+def insert_data_into_cassandra():
 
-    dir = os.getcwd() + '/data'
-    # For python 2 use "next()"
-    process_csv(dir, os.walk(dir).__next__()[2])
+    """insert_data_into_cassandra
 
+    Lay down cassandra keyspace and tables
+    Read data from file './event_datafile_new.csv' and insert into
+
+    """
     from cassandra.cluster import Cluster
     cluster = Cluster()
     session = cluster.connect()
@@ -49,6 +62,16 @@ def main():
     session.execute('USE sparkify')
 
     session.execute('CREATE TABLE IF NOT EXISTS sparkify.songplays(id UUID PRIMARY KEY)')
+
+
+def main():
+
+    dir = os.getcwd() + '/data'
+    # Normalize csvs and rewrite them to disc as a single composite file (python 2: "next()"; python 3: __next__())
+    process_csv(dir, os.walk(dir).__next__()[2])
+
+    # Insert csv into cassandra
+    insert_data_into_cassandra()
 
 if __name__ == "__main__":
     main()

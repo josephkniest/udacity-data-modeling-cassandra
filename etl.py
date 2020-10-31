@@ -82,6 +82,10 @@ def insert_data_into_cassandra():
             """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
 
 
+    rows = session.execute('SELECT * FROM sparkify.playsBySessionAndItem WHERE sessionId=338 AND itemInSession=4')
+    for row in rows:
+        print(row)
+
     session.shutdown()
     cluster.shutdown()
 

@@ -84,6 +84,17 @@ def insert_data_into_cassandra():
         ) WITH CLUSTERING ORDER BY (userId ASC, itemInSession ASC)
     """)
 
+    session.execute("""
+        CREATE TABLE IF NOT EXISTS sparkify.userFirstLastBySongListenedTo(
+            songTitle text,
+            artist text,
+            sessionId int,
+            userFirst text,
+            userLast text,
+            PRIMARY KEY (songTitle, sessionId)
+        ) WITH CLUSTERING ORDER BY (sessionId ASC)
+    """)
+
     with open('event_datafile_new.csv', encoding = 'utf8') as file:
         csvreader = csv.reader(file)
         csvreader.__next__()
@@ -101,6 +112,16 @@ def insert_data_into_cassandra():
                 userId = line[10],
                 artist = line[0].replace("'", "''"),
                 songTitle = line[9].replace("'", "''"),
+                userFirst = line[1].replace("'", "''"),
+                userLast = line[4].replace("'", "''")
+            ))
+            session.execute("""
+                INSERT INTO sparkify.userFirstLastBySongListenedTo(songTitle, artist, sessionId, userFirst, userLast)
+                VALUES ('{songTitle}', '{artist}', {sessionId}, '{userFirst}', '{userLast}')
+            """.format(
+                songTitle = line[9].replace("'", "''"),
+                artist = line[0].replace("'", "''"),
+                sessionId = line[8],
                 userFirst = line[1].replace("'", "''"),
                 userLast = line[4].replace("'", "''")
             ))
@@ -156,6 +177,27 @@ def artist_song_user_from_userid_session():
 
     return result_set
 
+def users_from_song():
+
+    cluster = Cluster()
+    session = cluster.connect()
+
+    rows = session.execute("""
+        SELECT userFirst, userLast
+        FROM sparkify.userFirstLastBySongListenedTo
+        WHERE songTitle='All Hands Against His Own'
+    """)
+
+    session.shutdown()
+    cluster.shutdown()
+
+    result_set = []
+    for row in rows:
+        result_set.append(row)
+
+    return result_set
+
+
 def main():
 
     dir = os.getcwd() + '/data'
@@ -165,7 +207,7 @@ def main():
     # Insert csv into cassandra
     insert_data_into_cassandra()
 
-    print(artist_song_user_from_userid_session())
+    print(users_from_song())
 
 if __name__ == "__main__":
     main()

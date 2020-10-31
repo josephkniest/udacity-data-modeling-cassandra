@@ -71,6 +71,17 @@ def insert_data_into_cassandra():
         ) WITH CLUSTERING ORDER BY (itemInSession ASC)
     """)
 
+    session.execute("""
+        CREATE TABLE IF NOT EXISTS sparkify.artistSongUserByUserIdSessionId(
+            sessionId int,
+            itemInSession int,
+            userId int,
+            artist text,
+            songTitle text,
+            PRIMARY KEY (sessionId, userId, itemInSession)
+        ) WITH CLUSTERING ORDER BY (userId ASC, itemInSession ASC)
+    """)
+
     with open('event_datafile_new.csv', encoding = 'utf8') as file:
         csvreader = csv.reader(file)
         csvreader.__next__()
@@ -79,6 +90,10 @@ def insert_data_into_cassandra():
                 INSERT INTO sparkify.playsBySessionAndItem(sessionId, itemInSession, artist, songTitle, songLen)
                 VALUES ({sessionId}, {itemInSession}, '{artist}', '{songTitle}', '{songLen}')
             """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
+            session.execute("""
+                INSERT INTO sparkify.artistSongUserByUserIdSessionId(sessionId, itemInSession, userId, artist, songTitle)
+                VALUES ({sessionId}, {itemInSession}, {userId}, '{artist}', '{songTitle}')
+            """.format(sessionId = line[8], itemInSession = line[3], userId = line[10], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''")))
 
     session.shutdown()
     cluster.shutdown()
@@ -104,10 +119,32 @@ def plays_by_session_and_item():
     session.shutdown()
     cluster.shutdown()
 
+    # We are only expecting one row here
     for row in rows:
         return {"artist": row[0], "song_title": row[1], "song_len": row[2]}
 
     return {}
+
+def artist_song_user_from_userid_session():
+
+    cluster = Cluster()
+    session = cluster.connect()
+
+    rows = session.execute("""
+        SELECT artist, songTitle
+        FROM sparkify.artistSongUserByUserIdSessionId
+        WHERE sessionId=182 AND userId=10
+        GROUP BY itemInSession
+    """)
+
+    session.shutdown()
+    cluster.shutdown()
+
+    result_set = []
+    for row in rows:
+        result_set.append(row)
+
+    return result_set
 
 def main():
 
@@ -118,8 +155,7 @@ def main():
     # Insert csv into cassandra
     insert_data_into_cassandra()
 
-    # Send the results of query number 1 to standard out
-    print(plays_by_session_and_item())
+    print(artist_song_user_from_userid_session())
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,7 @@
 import cassandra
 import csv
 import os
-
+from cassandra.cluster import Cluster
 def process_csv(dir, paths):
 
     """process_csv
@@ -45,7 +45,6 @@ def insert_data_into_cassandra():
     Read data from file './event_datafile_new.csv' and insert into
 
     """
-    from cassandra.cluster import Cluster
     cluster = Cluster()
     session = cluster.connect()
 
@@ -81,13 +80,34 @@ def insert_data_into_cassandra():
                 VALUES ({sessionId}, {itemInSession}, '{artist}', '{songTitle}', '{songLen}')
             """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
 
+    session.shutdown()
+    cluster.shutdown()
 
-    rows = session.execute('SELECT * FROM sparkify.playsBySessionAndItem WHERE sessionId=338 AND itemInSession=4')
-    for row in rows:
-        print(row)
+def plays_by_session_and_item():
+
+    """plays_by_session_and_item
+
+    Pull out the artist, song title and song length listened to within
+    the session id of 338 and item in session 4. Must be called after 'insert_data_into_cassandra()'
+    to get a non empty record
+
+    Return:
+    (dictionary) ['artist', 'song_title', 'song_length'] or [] if no records found
+
+    """
+
+    cluster = Cluster()
+    session = cluster.connect()
+
+    rows = session.execute('SELECT artist, songTitle, songLen FROM sparkify.playsBySessionAndItem WHERE sessionId=338 AND itemInSession=4')
 
     session.shutdown()
     cluster.shutdown()
+
+    for row in rows:
+        return {"artist": row[0], "song_title": row[1], "song_len": row[2]}
+
+    return {}
 
 def main():
 
@@ -97,6 +117,9 @@ def main():
 
     # Insert csv into cassandra
     insert_data_into_cassandra()
+
+    # Send the results of query number 1 to standard out
+    print(plays_by_session_and_item())
 
 if __name__ == "__main__":
     main()

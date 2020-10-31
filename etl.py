@@ -78,6 +78,8 @@ def insert_data_into_cassandra():
             userId int,
             artist text,
             songTitle text,
+            userFirst text,
+            userLast text,
             PRIMARY KEY (sessionId, userId, itemInSession)
         ) WITH CLUSTERING ORDER BY (userId ASC, itemInSession ASC)
     """)
@@ -91,9 +93,17 @@ def insert_data_into_cassandra():
                 VALUES ({sessionId}, {itemInSession}, '{artist}', '{songTitle}', '{songLen}')
             """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
             session.execute("""
-                INSERT INTO sparkify.artistSongUserByUserIdSessionId(sessionId, itemInSession, userId, artist, songTitle)
-                VALUES ({sessionId}, {itemInSession}, {userId}, '{artist}', '{songTitle}')
-            """.format(sessionId = line[8], itemInSession = line[3], userId = line[10], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''")))
+                INSERT INTO sparkify.artistSongUserByUserIdSessionId(sessionId, itemInSession, userId, artist, songTitle, userFirst, userLast)
+                VALUES ({sessionId}, {itemInSession}, {userId}, '{artist}', '{songTitle}', '{userFirst}', '{userLast}')
+            """.format(
+                sessionId = line[8],
+                itemInSession = line[3],
+                userId = line[10],
+                artist = line[0].replace("'", "''"),
+                songTitle = line[9].replace("'", "''"),
+                userFirst = line[1].replace("'", "''"),
+                userLast = line[4].replace("'", "''")
+            ))
 
     session.shutdown()
     cluster.shutdown()
@@ -131,7 +141,7 @@ def artist_song_user_from_userid_session():
     session = cluster.connect()
 
     rows = session.execute("""
-        SELECT artist, songTitle
+        SELECT artist, songTitle, userFirst, userLast
         FROM sparkify.artistSongUserByUserIdSessionId
         WHERE sessionId=182 AND userId=10
         GROUP BY itemInSession

@@ -158,6 +158,15 @@ def plays_by_session_and_item():
 
 def artist_song_user_from_userid_session():
 
+    """artist_song_user_from_userid_session
+
+    Return:
+    (array) Set of cassandra rows for artist, song and user first/last that
+    listened to the song (should all be the same user) for user id 10 with
+    session id 182 
+
+    """
+
     cluster = Cluster()
     session = cluster.connect()
 
@@ -178,6 +187,13 @@ def artist_song_user_from_userid_session():
     return result_set
 
 def users_from_song():
+
+    """users_from_song
+
+    Return:
+    (array) Set of cassandra rows for user first/last that listened to
+    the song 'All Hands Against His Own'
+    """
 
     cluster = Cluster()
     session = cluster.connect()
@@ -207,6 +223,11 @@ def main():
     # Insert csv into cassandra
     insert_data_into_cassandra()
 
+    print('(1):')
+    print(plays_by_session_and_item())
+    print('(2):')
+    print(artist_song_user_from_userid_session())
+    print('(3):')
     print(users_from_song())
 
 if __name__ == "__main__":

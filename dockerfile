@@ -18,6 +18,8 @@ RUN apt-get install -y nano
 
 RUN pip3 install cassandra-driver
 
+RUN pip3 install autopep8
+
 # Drop udacity project files into image
 
 RUN mkdir /root/data

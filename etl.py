@@ -2,8 +2,9 @@ import cassandra
 import csv
 import os
 from cassandra.cluster import Cluster
-def process_csv(dir, paths):
 
+
+def process_csv(dir, paths):
     """process_csv
 
     Read in csv files within "dir", normalize and output a single
@@ -20,24 +21,27 @@ def process_csv(dir, paths):
     # cache all the csv rows from each file in memory
     for f in paths:
         file = dir + '/' + f
-        with open(file, 'r', encoding = 'utf8', newline='') as csvfile:
+        with open(file, 'r', encoding='utf8', newline='') as csvfile:
             csvreader = csv.reader(csvfile)
             next(csvreader)
             for line in csvreader:
                 csvrows.append(line)
 
     # write out the csv rows to a single denormalized csv file
-    csv.register_dialect('dialect', quoting=csv.QUOTE_ALL, skipinitialspace=True)
-    with open('event_datafile_new.csv', 'w', encoding = 'utf8', newline='') as outFile:
+    csv.register_dialect('dialect', quoting=csv.QUOTE_ALL,
+                         skipinitialspace=True)
+    with open('event_datafile_new.csv', 'w', encoding='utf8', newline='') as outFile:
         writer = csv.writer(outFile, dialect='dialect')
-        writer.writerow(['artist','firstName','gender','itemInSession','lastName','length','level','location','sessionId','song','userId'])
+        writer.writerow(['artist', 'firstName', 'gender', 'itemInSession', 'lastName',
+                         'length', 'level', 'location', 'sessionId', 'song', 'userId'])
         for row in csvrows:
             if row[0] == '':
                 continue
-            writer.writerow((row[0], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[12], row[13], row[16]))
+            writer.writerow((row[0], row[2], row[3], row[4], row[5],
+                             row[6], row[7], row[8], row[12], row[13], row[16]))
+
 
 def insert_data_into_cassandra():
-
     """insert_data_into_cassandra
 
     Lay down cassandra keyspace and tables
@@ -94,42 +98,42 @@ def insert_data_into_cassandra():
         ) WITH CLUSTERING ORDER BY (session_id ASC)
     """)
 
-    with open('event_datafile_new.csv', encoding = 'utf8') as file:
+    with open('event_datafile_new.csv', encoding='utf8') as file:
         csvreader = csv.reader(file)
         csvreader.__next__()
         for line in csvreader:
             session.execute("""
                 INSERT INTO sparkify.plays_by_session_and_item(session_id, item_in_session, artist, song_title, song_len)
                 VALUES ({session_id}, {item_in_session}, '{artist}', '{song_title}', '{song_len}')
-            """.format(session_id = line[8], item_in_session = line[3], artist = line[0].replace("'", "''"), song_title = line[9].replace("'", "''"), song_len = line[5].replace("'", "''")))
+            """.format(session_id=line[8], item_in_session=line[3], artist=line[0].replace("'", "''"), song_title=line[9].replace("'", "''"), song_len=line[5].replace("'", "''")))
             session.execute("""
                 INSERT INTO sparkify.artist_song_user_by_user_id_session_id(session_id, item_in_session, user_id, artist, song_title, user_first, user_last)
                 VALUES ({session_id}, {item_in_session}, {user_id}, '{artist}', '{song_title}', '{user_first}', '{user_last}')
             """.format(
-                session_id = line[8],
-                item_in_session = line[3],
-                user_id = line[10],
-                artist = line[0].replace("'", "''"),
-                song_title = line[9].replace("'", "''"),
-                user_first = line[1].replace("'", "''"),
-                user_last = line[4].replace("'", "''")
+                session_id=line[8],
+                item_in_session=line[3],
+                user_id=line[10],
+                artist=line[0].replace("'", "''"),
+                song_title=line[9].replace("'", "''"),
+                user_first=line[1].replace("'", "''"),
+                user_last=line[4].replace("'", "''")
             ))
             session.execute("""
                 INSERT INTO sparkify.user_first_last_by_song_listened_to(song_title, artist, session_id, user_first, user_last)
                 VALUES ('{song_title}', '{artist}', {session_id}, '{user_first}', '{user_last}')
             """.format(
-                song_title = line[9].replace("'", "''"),
-                artist = line[0].replace("'", "''"),
-                session_id = line[8],
-                user_first = line[1].replace("'", "''"),
-                user_last = line[4].replace("'", "''")
+                song_title=line[9].replace("'", "''"),
+                artist=line[0].replace("'", "''"),
+                session_id=line[8],
+                user_first=line[1].replace("'", "''"),
+                user_last=line[4].replace("'", "''")
             ))
 
     session.shutdown()
     cluster.shutdown()
 
-def plays_by_session_and_item():
 
+def plays_by_session_and_item():
     """plays_by_session_and_item
 
     Pull out the artist, song title and song length listened to within
@@ -144,7 +148,8 @@ def plays_by_session_and_item():
     cluster = Cluster()
     session = cluster.connect()
 
-    rows = session.execute('SELECT artist, song_title, song_len FROM sparkify.plays_by_session_and_item WHERE session_id=338 AND item_in_session=4')
+    rows = session.execute(
+        'SELECT artist, song_title, song_len FROM sparkify.plays_by_session_and_item WHERE session_id=338 AND item_in_session=4')
 
     session.shutdown()
     cluster.shutdown()
@@ -155,8 +160,8 @@ def plays_by_session_and_item():
 
     return {}
 
-def artist_song_user_from_userid_session():
 
+def artist_song_user_from_userid_session():
     """artist_song_user_from_userid_session
 
     Return:
@@ -185,8 +190,8 @@ def artist_song_user_from_userid_session():
 
     return result_set
 
-def users_from_song():
 
+def users_from_song():
     """users_from_song
 
     Return:
@@ -229,6 +234,6 @@ def main():
     print('(3):')
     print(users_from_song())
 
+
 if __name__ == "__main__":
     main()
-

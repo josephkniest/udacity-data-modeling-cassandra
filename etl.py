@@ -20,7 +20,6 @@ def process_csv(dir, paths):
     # cache all the csv rows from each file in memory
     for f in paths:
         file = dir + '/' + f
-        print(file)
         with open(file, 'r', encoding = 'utf8', newline='') as csvfile:
             csvreader = csv.reader(csvfile)
             next(csvreader)
@@ -62,37 +61,37 @@ def insert_data_into_cassandra():
 
     session.execute("""
         CREATE TABLE IF NOT EXISTS sparkify.playsBySessionAndItem(
-            sessionId int,
-            itemInSession int,
+            session_id int,
+            item_in_session int,
             artist text,
-            songTitle text,
-            songLen text,
-            PRIMARY KEY (sessionId, itemInSession)
-        ) WITH CLUSTERING ORDER BY (itemInSession ASC)
+            song_title text,
+            song_len text,
+            PRIMARY KEY (session_id, item_in_session)
+        ) WITH CLUSTERING ORDER BY (item_in_session ASC)
     """)
 
     session.execute("""
         CREATE TABLE IF NOT EXISTS sparkify.artistSongUserByUserIdSessionId(
-            sessionId int,
-            itemInSession int,
-            userId int,
+            session_id int,
+            item_in_session int,
+            user_id int,
             artist text,
-            songTitle text,
-            userFirst text,
-            userLast text,
-            PRIMARY KEY (sessionId, userId, itemInSession)
-        ) WITH CLUSTERING ORDER BY (userId ASC, itemInSession ASC)
+            song_title text,
+            user_first text,
+            user_last text,
+            PRIMARY KEY (session_id, user_id, item_in_session)
+        ) WITH CLUSTERING ORDER BY (user_id ASC, item_in_session ASC)
     """)
 
     session.execute("""
         CREATE TABLE IF NOT EXISTS sparkify.userFirstLastBySongListenedTo(
-            songTitle text,
+            song_title text,
             artist text,
-            sessionId int,
-            userFirst text,
-            userLast text,
-            PRIMARY KEY (songTitle, sessionId)
-        ) WITH CLUSTERING ORDER BY (sessionId ASC)
+            session_id int,
+            user_first text,
+            user_last text,
+            PRIMARY KEY (song_title, session_id)
+        ) WITH CLUSTERING ORDER BY (session_id ASC)
     """)
 
     with open('event_datafile_new.csv', encoding = 'utf8') as file:
@@ -100,30 +99,30 @@ def insert_data_into_cassandra():
         csvreader.__next__()
         for line in csvreader:
             session.execute("""
-                INSERT INTO sparkify.playsBySessionAndItem(sessionId, itemInSession, artist, songTitle, songLen)
-                VALUES ({sessionId}, {itemInSession}, '{artist}', '{songTitle}', '{songLen}')
-            """.format(sessionId = line[8], itemInSession = line[3], artist = line[0].replace("'", "''"), songTitle = line[9].replace("'", "''"), songLen = line[5].replace("'", "''")))
+                INSERT INTO sparkify.playsBySessionAndItem(session_id, item_in_session, artist, song_title, song_len)
+                VALUES ({session_id}, {item_in_session}, '{artist}', '{song_title}', '{song_len}')
+            """.format(session_id = line[8], item_in_session = line[3], artist = line[0].replace("'", "''"), song_title = line[9].replace("'", "''"), song_len = line[5].replace("'", "''")))
             session.execute("""
-                INSERT INTO sparkify.artistSongUserByUserIdSessionId(sessionId, itemInSession, userId, artist, songTitle, userFirst, userLast)
-                VALUES ({sessionId}, {itemInSession}, {userId}, '{artist}', '{songTitle}', '{userFirst}', '{userLast}')
+                INSERT INTO sparkify.artistSongUserByUserIdSessionId(session_id, item_in_session, user_id, artist, song_title, user_first, user_last)
+                VALUES ({session_id}, {item_in_session}, {user_id}, '{artist}', '{song_title}', '{user_first}', '{user_last}')
             """.format(
-                sessionId = line[8],
-                itemInSession = line[3],
-                userId = line[10],
+                session_id = line[8],
+                item_in_session = line[3],
+                user_id = line[10],
                 artist = line[0].replace("'", "''"),
-                songTitle = line[9].replace("'", "''"),
-                userFirst = line[1].replace("'", "''"),
-                userLast = line[4].replace("'", "''")
+                song_title = line[9].replace("'", "''"),
+                user_first = line[1].replace("'", "''"),
+                user_last = line[4].replace("'", "''")
             ))
             session.execute("""
-                INSERT INTO sparkify.userFirstLastBySongListenedTo(songTitle, artist, sessionId, userFirst, userLast)
-                VALUES ('{songTitle}', '{artist}', {sessionId}, '{userFirst}', '{userLast}')
+                INSERT INTO sparkify.userFirstLastBySongListenedTo(song_title, artist, session_id, user_first, user_last)
+                VALUES ('{song_title}', '{artist}', {session_id}, '{user_first}', '{user_last}')
             """.format(
-                songTitle = line[9].replace("'", "''"),
+                song_title = line[9].replace("'", "''"),
                 artist = line[0].replace("'", "''"),
-                sessionId = line[8],
-                userFirst = line[1].replace("'", "''"),
-                userLast = line[4].replace("'", "''")
+                session_id = line[8],
+                user_first = line[1].replace("'", "''"),
+                user_last = line[4].replace("'", "''")
             ))
 
     session.shutdown()
@@ -145,7 +144,7 @@ def plays_by_session_and_item():
     cluster = Cluster()
     session = cluster.connect()
 
-    rows = session.execute('SELECT artist, songTitle, songLen FROM sparkify.playsBySessionAndItem WHERE sessionId=338 AND itemInSession=4')
+    rows = session.execute('SELECT artist, song_title, song_len FROM sparkify.playsBySessionAndItem WHERE session_id=338 AND item_in_session=4')
 
     session.shutdown()
     cluster.shutdown()
@@ -163,7 +162,7 @@ def artist_song_user_from_userid_session():
     Return:
     (array) Set of cassandra rows for artist, song and user first/last that
     listened to the song (should all be the same user) for user id 10 with
-    session id 182 
+    session id 182
 
     """
 
@@ -171,10 +170,10 @@ def artist_song_user_from_userid_session():
     session = cluster.connect()
 
     rows = session.execute("""
-        SELECT artist, songTitle, userFirst, userLast
+        SELECT artist, song_title, user_first, user_last
         FROM sparkify.artistSongUserByUserIdSessionId
-        WHERE sessionId=182 AND userId=10
-        GROUP BY itemInSession
+        WHERE session_id=182 AND user_id=10
+        GROUP BY item_in_session
     """)
 
     session.shutdown()
@@ -199,9 +198,9 @@ def users_from_song():
     session = cluster.connect()
 
     rows = session.execute("""
-        SELECT userFirst, userLast
+        SELECT user_first, user_last
         FROM sparkify.userFirstLastBySongListenedTo
-        WHERE songTitle='All Hands Against His Own'
+        WHERE song_title='All Hands Against His Own'
     """)
 
     session.shutdown()

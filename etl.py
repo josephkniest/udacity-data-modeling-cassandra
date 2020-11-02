@@ -70,8 +70,7 @@ def insert_data_into_cassandra():
             artist text,
             song_title text,
             song_len float,
-            PRIMARY KEY (session_id, item_in_session)
-        ) WITH CLUSTERING ORDER BY (item_in_session ASC)
+            PRIMARY KEY ((session_id, item_in_session), artist, song_title, song_len))
     """)
 
     session.execute("""
@@ -83,8 +82,7 @@ def insert_data_into_cassandra():
             song_title text,
             user_first text,
             user_last text,
-            PRIMARY KEY (session_id, user_id, item_in_session)
-        ) WITH CLUSTERING ORDER BY (user_id ASC, item_in_session ASC)
+            PRIMARY KEY ((session_id, user_id), item_in_session, artist, song_title, user_first, user_last))
     """)
 
     session.execute("""
@@ -93,8 +91,7 @@ def insert_data_into_cassandra():
             user_id int,
             user_first text,
             user_last text,
-            PRIMARY KEY (song_title, user_id)
-        ) WITH CLUSTERING ORDER BY (user_id ASC)
+            PRIMARY KEY ((song_title), user_id, user_first, user_last))
     """)
 
     with open('event_datafile_new.csv', encoding='utf8') as file:
@@ -204,6 +201,7 @@ def users_from_song():
         SELECT user_first, user_last
         FROM sparkify.user_first_last_by_song_listened_to
         WHERE song_title='All Hands Against His Own'
+        GROUP BY user_id
     """)
 
     session.shutdown()

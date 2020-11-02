@@ -69,7 +69,7 @@ def insert_data_into_cassandra():
             item_in_session int,
             artist text,
             song_title text,
-            song_len text,
+            song_len float,
             PRIMARY KEY (session_id, item_in_session)
         ) WITH CLUSTERING ORDER BY (item_in_session ASC)
     """)
@@ -90,12 +90,11 @@ def insert_data_into_cassandra():
     session.execute("""
         CREATE TABLE IF NOT EXISTS sparkify.user_first_last_by_song_listened_to(
             song_title text,
-            artist text,
-            session_id int,
+            user_id int,
             user_first text,
             user_last text,
-            PRIMARY KEY (song_title, session_id)
-        ) WITH CLUSTERING ORDER BY (session_id ASC)
+            PRIMARY KEY (song_title, user_id)
+        ) WITH CLUSTERING ORDER BY (user_id ASC)
     """)
 
     with open('event_datafile_new.csv', encoding='utf8') as file:
@@ -104,8 +103,8 @@ def insert_data_into_cassandra():
         for line in csvreader:
             session.execute("""
                 INSERT INTO sparkify.plays_by_session_and_item(session_id, item_in_session, artist, song_title, song_len)
-                VALUES ({session_id}, {item_in_session}, '{artist}', '{song_title}', '{song_len}')
-            """.format(session_id=line[8], item_in_session=line[3], artist=line[0].replace("'", "''"), song_title=line[9].replace("'", "''"), song_len=line[5].replace("'", "''")))
+                VALUES ({session_id}, {item_in_session}, '{artist}', '{song_title}', {song_len})
+            """.format(session_id=line[8], item_in_session=line[3], artist=line[0].replace("'", "''"), song_title=line[9].replace("'", "''"), song_len=line[5]))
             session.execute("""
                 INSERT INTO sparkify.artist_song_user_by_user_id_session_id(session_id, item_in_session, user_id, artist, song_title, user_first, user_last)
                 VALUES ({session_id}, {item_in_session}, {user_id}, '{artist}', '{song_title}', '{user_first}', '{user_last}')
@@ -119,12 +118,11 @@ def insert_data_into_cassandra():
                 user_last=line[4].replace("'", "''")
             ))
             session.execute("""
-                INSERT INTO sparkify.user_first_last_by_song_listened_to(song_title, artist, session_id, user_first, user_last)
-                VALUES ('{song_title}', '{artist}', {session_id}, '{user_first}', '{user_last}')
+                INSERT INTO sparkify.user_first_last_by_song_listened_to(song_title, user_id, user_first, user_last)
+                VALUES ('{song_title}', {user_id}, '{user_first}', '{user_last}')
             """.format(
                 song_title=line[9].replace("'", "''"),
-                artist=line[0].replace("'", "''"),
-                session_id=line[8],
+                user_id=line[10],
                 user_first=line[1].replace("'", "''"),
                 user_last=line[4].replace("'", "''")
             ))

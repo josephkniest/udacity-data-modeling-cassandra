@@ -70,7 +70,7 @@ def insert_data_into_cassandra():
             artist text,
             song_title text,
             song_len float,
-            PRIMARY KEY ((session_id, item_in_session), artist, song_title, song_len))
+            PRIMARY KEY (session_id, item_in_session))
     """)
 
     session.execute("""

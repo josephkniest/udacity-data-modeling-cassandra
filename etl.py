@@ -181,7 +181,7 @@ def artist_song_user_from_userid_session():
 
     result_set = []
     for row in rows:
-        result_set.append(row)
+        result_set.append({"artist": row[0], "song_title": row[1], "user_first": row[2], "user_last": row[3]})
 
     return result_set
 
@@ -209,7 +209,7 @@ def users_from_song():
 
     result_set = []
     for row in rows:
-        result_set.append(row)
+        result_set.append({"user_first": row[0], "user_last": row[1]})
 
     return result_set
 

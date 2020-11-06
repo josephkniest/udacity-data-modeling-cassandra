@@ -91,7 +91,7 @@ def insert_data_into_cassandra():
             user_id int,
             user_first text,
             user_last text,
-            PRIMARY KEY ((song_title), user_id, user_first, user_last))
+            PRIMARY KEY (song_title, user_id))
     """)
 
     with open('event_datafile_new.csv', encoding='utf8') as file:
